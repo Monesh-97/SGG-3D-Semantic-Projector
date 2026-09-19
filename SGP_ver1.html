@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SGG Semantic Projector</title>
+<style>
+*{box-sizing:border-box}html,body{height:100%;margin:0;background:#fff;color:#202124;font-family:Arial,Helvetica,sans-serif;overflow:hidden}
+.top{height:56px;border-bottom:1px solid #dadce0;display:flex;align-items:center;padding:0 18px;gap:18px;background:#fff}
+.logo{font-size:20px;font-weight:500;color:#5f6368}.logo b{color:#4285f4}
+.top .file{font-size:13px;color:#5f6368;margin-left:auto}
+button,select,input{font:inherit}
+button{border:1px solid #dadce0;background:#fff;border-radius:4px;padding:7px 11px;color:#3c4043;cursor:pointer}
+button:hover{background:#f8f9fa}
+.layout{height:calc(100% - 56px);display:grid;grid-template-columns:300px minmax(500px,1fr) 300px}
+.left,.right{overflow:auto;border-right:1px solid #dadce0;background:#fff}.right{border-right:0;border-left:1px solid #dadce0}
+.section{padding:15px 16px;border-bottom:1px solid #eee}.section h3{font-size:11px;color:#5f6368;text-transform:uppercase;letter-spacing:.8px;margin:0 0 12px}
+.row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:9px 0;font-size:13px}.row label{color:#3c4043}
+select,input[type=text]{border:1px solid #dadce0;border-radius:4px;background:#fff;height:32px;padding:0 8px;color:#3c4043}
+select{width:100%}input[type=text]{width:100%}
+.tabs{display:flex;border-bottom:1px solid #dadce0;margin:-15px -16px 14px}
+.tab{flex:1;text-align:center;padding:11px 3px;font-size:12px;color:#5f6368;cursor:pointer;border-bottom:2px solid transparent}
+.tab.active{color:#1a73e8;border-bottom-color:#1a73e8}
+.big{font-size:14px;color:#202124}.muted{font-size:11px;color:#80868b;line-height:1.5}
+.badge{display:inline-block;border-radius:12px;padding:3px 8px;font-size:10px;margin:2px 2px 2px 0;background:#f1f3f4}
+.badge.subject{background:#eee6ff;color:#6f42c1}.badge.object{background:#e8f0fe;color:#1967d2}.badge.predicate{background:#fef0d9;color:#b06000}.badge.image{background:#e6f4ea;color:#188038}
+.metric{display:grid;grid-template-columns:1fr 1fr;gap:7px}.metric div{border:1px solid #e0e3e7;border-radius:5px;padding:8px}.metric b{display:block;font-size:17px}.metric span{font-size:10px;color:#80868b}
+#view{position:relative;background:#fafafa;min-width:0}.canvas{position:absolute;inset:0}
+#overlay{position:absolute;left:12px;top:12px;background:#fff;border:1px solid #dadce0;border-radius:5px;padding:8px 10px;font-size:11px;color:#5f6368;box-shadow:0 1px 2px #0001;pointer-events:none}
+#axisLegend{position:absolute;right:12px;top:12px;background:#fff;border:1px solid #dadce0;border-radius:5px;padding:8px;font-size:10px;line-height:1.7;pointer-events:none}
+#axisLegend .x{color:#d93025}#axisLegend .y{color:#188038}#axisLegend .z{color:#1967d2}
+#tip{position:absolute;display:none;background:#202124;color:#fff;padding:8px 10px;border-radius:5px;font-size:11px;pointer-events:none;z-index:4;box-shadow:0 2px 8px #0005}
+.toolbar{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);display:flex;gap:5px;background:#fff;border:1px solid #dadce0;border-radius:5px;padding:5px;box-shadow:0 1px 3px #0002}
+.toolbar button{padding:6px 9px;font-size:11px}
+.card{border:1px solid #dadce0;border-radius:6px;padding:11px}.card h4{margin:0 0 5px;font-size:15px;font-weight:500}
+.kv{display:grid;grid-template-columns:80px 1fr;gap:6px;font-size:11px;margin-top:8px}.kv span{color:#80868b}.kv b{font-weight:500;word-break:break-word}
+.neighbor{padding:7px 0;border-bottom:1px solid #eee;font-size:12px;display:flex;justify-content:space-between}
+.edge{display:grid;grid-template-columns:1fr 65px 1fr;align-items:center;gap:4px;margin:6px 0;font-size:10px}.edge div{padding:6px;border:1px solid #e0e3e7;border-radius:4px;text-align:center}.edge .rel{background:#fff8e8;color:#b06000;border-color:#f6d89a}
+.check{display:flex;align-items:center;gap:7px;font-size:12px;margin:8px 0}
+.range{width:120px}.status{font-size:11px;color:#80868b}
+</style>
+</head>
+<body>
+<div class="top">
+  <div class="logo"><b>SGG</b> Semantic Projector</div>
+  <button id="loadDemo">Load Demo</button>
+  <button id="reset">Reset</button>
+  <button id="fit">Show All</button>
+  <div class="file" id="status">12 points · 10 relationships · 768-D embedding</div>
+</div>
+
+<div class="layout">
+<aside class="left">
+  <div class="section">
+    <h3>DATA</h3>
+    <div class="row"><label>Scene</label></div>
+    <select id="sceneSelect">
+      <option value="street">Street Bicycle</option>
+      <option value="kitchen">Kitchen</option>
+      <option value="park">Park</option>
+    </select>
+    <div class="row"><label>Label by</label><select id="labelBy" style="width:145px"><option>node</option><option>type</option><option>confidence</option></select></div>
+    <div class="row"><label>Color by</label><select id="colorBy" style="width:145px"><option>semantic type</option><option>confidence</option><option>none</option></select></div>
+  </div>
+
+  <div class="section">
+    <div class="metric"><div><b id="pCount">12</b><span>Points</span></div><div><b id="rCount">10</b><span>Relations</span></div><div><b>768</b><span>Dimensions</span></div><div><b>3D</b><span>View</span></div></div>
+  </div>
+
+  <div class="section">
+    <div class="tabs"><div class="tab active" data-proj="PCA">PCA</div><div class="tab" data-proj="UMAP">UMAP</div><div class="tab" data-proj="t-SNE">t-SNE</div></div>
+    <h3 id="projectionTitle">PCA</h3>
+    <div class="row"><label>Dimension</label><select id="dimension" style="width:110px"><option>3D</option><option>2D</option></select></div>
+    <div class="row"><label>X component</label><select id="xcomp" style="width:110px"><option>PC 1</option><option>PC 2</option><option>PC 3</option></select></div>
+    <div class="row"><label>Y component</label><select id="ycomp" style="width:110px"><option>PC 2</option><option>PC 1</option><option>PC 3</option></select></div>
+    <div class="row"><label>Z component</label><select id="zcomp" style="width:110px"><option>PC 3</option><option>PC 1</option><option>PC 2</option></select></div>
+    <div class="muted">For real data, replace the sample coordinates with PCA/UMAP/t-SNE projections of your SGG embeddings.</div>
+  </div>
+
+  <div class="section">
+    <h3>SCENE GRAPH</h3>
+    <label class="check"><input id="showEdges" type="checkbox" checked> Show relationship edges</label>
+    <label class="check"><input id="showLabels" type="checkbox" checked> Show point labels</label>
+    <label class="check"><input id="showAxes" type="checkbox" checked> Show X / Y / Z axes</label>
+    <label class="check"><input id="autoRotate" type="checkbox"> Auto rotate</label>
+    <div class="row"><label>Point size</label><input class="range" id="pointSize" type="range" min=".5" max="2.5" step=".1" value="1"></div>
+    <div class="row"><label>Edge opacity</label><input class="range" id="edgeOpacity" type="range" min=".05" max="1" step=".05" value=".5"></div>
+  </div>
+
+  <div class="section">
+    <h3>SEMANTIC TYPES</h3>
+    <span class="badge subject">SUBJECT</span><span class="badge object">OBJECT</span><span class="badge predicate">PREDICATE</span><span class="badge image">IMAGE</span>
+  </div>
+</aside>
+
+<main id="view">
+  <div id="canvas" class="canvas"></div>
+  <div id="overlay"><b>3D semantic embedding space</b><br>Left drag: rotate · Right drag: pan · Wheel: zoom</div>
+  <div id="axisLegend"><span class="x">X</span> semantic component<br><span class="y">Y</span> semantic component<br><span class="z">Z</span> semantic component<br><b>O</b> origin (0,0,0)</div>
+  <div id="tip"></div>
+  <div class="toolbar"><button id="topView">Top</button><button id="frontView">Front</button><button id="sideView">Side</button><button id="originView">Origin</button></div>
+</main>
+
+<aside class="right">
+  <div class="section">
+    <h3>INSPECTOR</h3>
+    <input id="search" type="text" placeholder="Search node, object, predicate...">
+  </div>
+  <div class="section">
+    <div id="selected" class="card"><h4>No selection</h4><div class="muted">Click a scene-graph point to inspect its embedding, metadata and relations.</div></div>
+  </div>
+  <div class="section">
+    <h3>NEAREST NEIGHBORS</h3>
+    <div class="row"><label>Metric</label><select id="metric" style="width:125px"><option>Euclidean</option><option>Cosine</option></select></div>
+    <div id="neighbors" class="muted">Select a point.</div>
+  </div>
+  <div class="section">
+    <h3>RELATIONSHIPS</h3>
+    <div id="relations" class="muted">Select a point.</div>
+  </div>
+  <div class="section">
+    <h3>IMAGE / MODEL</h3>
+    <div class="kv">
+      <span>Dataset</span><b>VRD / Demo</b>
+      <span>Backbone</span><b>Visformer</b>
+      <span>Model</span><b>MATAN</b>
+      <span>Embedding</span><b>768-D</b>
+      <span>Projection</span><b id="projLabel">PCA → 3D</b>
+    </div>
+  </div>
+</aside>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+const DATA={
+street:{name:"Street Bicycle",nodes:[
+{id:"1",label:"person",type:"subject",x:-1.6,y:1.1,z:.25,c:.97},{id:"2",label:"riding",type:"predicate",x:-.55,y:1,z:.15,c:.94},{id:"3",label:"bicycle",type:"object",x:.65,y:.95,z:.25,c:.96},
+{id:"4",label:"wearing",type:"predicate",x:-.7,y:.15,z:.8,c:.91},{id:"5",label:"helmet",type:"object",x:.2,y:.08,z:1.1,c:.93},{id:"6",label:"near",type:"predicate",x:-1,y:-.5,z:-.65,c:.88},
+{id:"7",label:"car",type:"object",x:-1.8,y:-.95,z:-.65,c:.92},{id:"8",label:"on",type:"predicate",x:.75,y:-.35,z:-.1,c:.90},{id:"9",label:"road",type:"object",x:1.5,y:-.85,z:-.2,c:.95},
+{id:"10",label:"traffic light",type:"object",x:1.55,y:.6,z:1.2,c:.87},{id:"11",label:"street",type:"object",x:.3,y:-1.5,z:-.7,c:.91},{id:"12",label:"image",type:"image",x:0,y:0,z:0,c:1}],
+edges:[["1","2","riding"],["2","3",""],["1","4","wearing"],["4","5",""],["1","6","near"],["6","7",""],["3","8","on"],["8","9",""],["9","11",""],["10","11","near"]]},
+kitchen:{name:"Kitchen",nodes:[
+{id:"1",label:"person",type:"subject",x:-1.6, y:.9,z:.2,c:.98},{id:"2",label:"holding",type:"predicate",x:-.6,y:.85,z:.25,c:.94},{id:"3",label:"knife",type:"object",x:.55,y:.9,z:.35,c:.93},
+{id:"4",label:"cutting",type:"predicate",x:-.5,y:.05,z:.85,c:.91},{id:"5",label:"vegetable",type:"object",x:.6,y:.02,z:1.05,c:.90},{id:"6",label:"on",type:"predicate",x:.2,y:-.65,z:-.1,c:.93},
+{id:"7",label:"table",type:"object",x:.9,y:-1.05,z:-.25,c:.97},{id:"8",label:"bowl",type:"object",x:1.65,y:-.75,z:.15,c:.95},{id:"9",label:"near",type:"predicate",x:-1.1,y:-.35,z:-.75,c:.88},
+{id:"10",label:"counter",type:"object",x:-1.7,y:-.9,z:-.45,c:.92},{id:"11",label:"food",type:"object",x:.2,y:.55,z:1.45,c:.89},{id:"12",label:"image",type:"image",x:0,y:0,z:0,c:1}],
+edges:[["1","2","holding"],["2","3",""],["1","4","cutting"],["4","5",""],["5","6","on"],["6","7",""],["7","8","near"],["1","9","near"],["9","10",""],["3","11","near"]]},
+park:{name:"Park",nodes:[
+{id:"1",label:"child",type:"subject",x:-1.65,y:1.05,z:.2,c:.96},{id:"2",label:"playing",type:"predicate",x:-.55,y:1,z:.25,c:.92},{id:"3",label:"dog",type:"object",x:.7,y:.98,z:.28,c:.97},
+{id:"4",label:"holding",type:"predicate",x:-.75,y:.1,z:.85,c:.87},{id:"5",label:"ball",type:"object",x:.2,y:.12,z:1.15,c:.91},{id:"6",label:"near",type:"predicate",x:-.95,y:-.6,z:-.65,c:.90},
+{id:"7",label:"tree",type:"object",x:.1,y:-.95,z:-.25,c:.98},{id:"8",label:"beside",type:"predicate",x:.95,y:-.35,z:-.05,c:.89},{id:"9",label:"bench",type:"object",x:1.65,y:-.75,z:.05,c:.94},
+{id:"10",label:"in",type:"predicate",x:-1.15,y:-.1,z:-.9,c:.93},{id:"11",label:"park",type:"object",x:-1.75,y:-1.05,z:-.35,c:.96},{id:"12",label:"image",type:"image",x:0,y:0,z:0,c:1}],
+edges:[["1","2","playing"],["2","3",""],["1","4","holding"],["4","5",""],["1","6","near"],["6","7",""],["3","8","beside"],["8","9",""],["1","10","in"],["10","11",""]]}
+};
+
+let current=DATA.street, meshes=[], lines=[], labels=[], selected=null, pointScale=1, edgeAlpha=.5;
+const scene=new THREE.Scene(); scene.background=new THREE.Color(0xf7f8fa);
+const camera=new THREE.PerspectiveCamera(55,1,.1,100); camera.position.set(5,3.5,6.5);
+const renderer=new THREE.WebGLRenderer({antialias:true}); renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+document.getElementById("canvas").appendChild(renderer.domElement);
+const controls=new THREE.OrbitControls(camera,renderer.domElement); controls.enableDamping=true; controls.target.set(0,0,0);
+
+scene.add(new THREE.AmbientLight(0xffffff,.8));
+const light=new THREE.DirectionalLight(0xffffff,.8); light.position.set(4,6,7); scene.add(light);
+
+const world=new THREE.Group();scene.add(world);
+const colors={subject:0x7e57c2,object:0x4285f4,predicate:0xf9ab00,image:0x34a853};
+
+function axisLine(a,b,color){let g=new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(...a),new THREE.Vector3(...b)]);let m=new THREE.LineBasicMaterial({color});world.add(new THREE.Line(g,m))}
+axisLine([-3.5,0,0],[3.5,0,0],0xd93025);axisLine([0,-3.5,0],[0,3.5,0],0x188038);axisLine([0,0,-3.5],[0,0,3.5],0x1967d2);
+function label3d(txt,pos,color){let c=document.createElement("canvas"),x=c.getContext("2d");c.width=180;c.height=50;x.fillStyle=color;x.font="bold 28px Arial";x.fillText(txt,8,34);let t=new THREE.CanvasTexture(c),s=new THREE.SpriteMaterial({map:t,transparent:true,depthTest:false});let sp=new THREE.Sprite(s);sp.position.set(...pos);sp.scale.set(.9,.25,1);world.add(sp)}
+label3d("X", [3.65,.12,0],"#d93025");label3d("Y",[.12,3.65,0],"#188038");label3d("Z",[.12,.12,3.65],"#1967d2");label3d("O",[.12,.12,.12],"#202124");
+
+const grid=new THREE.GridHelper(8,16,0xc8d0da,0xe4e8ed);grid.position.y=-2;world.add(grid);
+
+function clearGraph(){meshes.forEach(m=>world.remove(m));lines.forEach(l=>world.remove(l));labels.forEach(l=>world.remove(l));meshes=[];lines=[];labels=[]}
+function makeGraph(){
+ clearGraph();
+ current.nodes.forEach(n=>{
+   let geo=n.type==="predicate"?new THREE.OctahedronGeometry(.12,1):new THREE.SphereGeometry(n.type==="image"?.18:.145,20,20);
+   let mat=new THREE.MeshPhongMaterial({color:colors[n.type],emissive:colors[n.type],emissiveIntensity:.12,transparent:true});
+   let m=new THREE.Mesh(geo,mat);m.position.set(n.x,n.y,n.z);m.userData=n;world.add(m);meshes.push(m);
+   let canvas=document.createElement("canvas"),ctx=canvas.getContext("2d");canvas.width=320;canvas.height=42;ctx.fillStyle="#3c4043";ctx.font="22px Arial";ctx.fillText(n.label,4,27);
+   let tex=new THREE.CanvasTexture(canvas),sm=new THREE.SpriteMaterial({map:tex,transparent:true,depthTest:false});let sp=new THREE.Sprite(sm);sp.position.set(0,.25,0);sp.scale.set(.75,.10,1);m.add(sp);labels.push(sp);
+ });
+ current.edges.forEach(e=>{
+   let a=current.nodes.find(n=>n.id===e[0]),b=current.nodes.find(n=>n.id===e[1]);
+   let geo=new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(a.x,a.y,a.z),new THREE.Vector3(b.x,b.y,b.z)]);
+   let mat=new THREE.LineBasicMaterial({color:0x9aa0a6,transparent:true,opacity:edgeAlpha});let l=new THREE.Line(geo,mat);l.userData={a:e[0],b:e[1],rel:e[2]};world.add(l);lines.push(l);
+ });
+ document.getElementById("pCount").textContent=current.nodes.length;document.getElementById("rCount").textContent=current.edges.length;
+ document.getElementById("status").textContent=`${current.nodes.length} points · ${current.edges.length} relationships · 768-D embedding`;
+ applyDisplay(); 
+}
+function applyDisplay(){
+ const se=document.getElementById("search").value.toLowerCase();
+ meshes.forEach(m=>{let ok=!se||m.userData.label.toLowerCase().includes(se)||m.userData.type.includes(se);m.visible=ok;m.scale.setScalar((m.userData.id===selected?.id?1.7:1)*pointScale)});
+ lines.forEach(l=>{let a=meshes.find(m=>m.userData.id===l.userData.a),b=meshes.find(m=>m.userData.id===l.userData.b);l.visible=document.getElementById("showEdges").checked&&a?.visible&&b?.visible;l.material.opacity=edgeAlpha});
+ labels.forEach(l=>l.visible=document.getElementById("showLabels").checked);
+}
+function selectNode(n){
+ selected=n; meshes.forEach(m=>m.material.emissiveIntensity=m.userData.id===n.id?.65:.12);
+ document.getElementById("selected").innerHTML=`<h4>${n.label}</h4><span class="badge ${n.type}">${n.type.toUpperCase()}</span>
+ <div class="kv"><span>ID</span><b>${n.id}</b><span>Confidence</span><b>${(n.c*100).toFixed(2)}%</b><span>X</span><b>${n.x.toFixed(3)}</b><span>Y</span><b>${n.y.toFixed(3)}</b><span>Z</span><b>${n.z.toFixed(3)}</b></div>`;
+ let near=current.nodes.filter(x=>x.id!==n.id).map(x=>({x,d:Math.hypot(x.x-n.x,x.y-n.y,x.z-n.z)})).sort((a,b)=>a.d-b.d).slice(0,5);
+ document.getElementById("neighbors").innerHTML=near.map(q=>`<div class="neighbor"><span>${q.x.label}</span><span>${q.d.toFixed(3)}</span></div>`).join("");
+ let rel=current.edges.filter(e=>e[0]===n.id||e[1]===n.id);
+ document.getElementById("relations").innerHTML=rel.map(e=>{let a=current.nodes.find(x=>x.id===e[0]),b=current.nodes.find(x=>x.id===e[1]);return `<div class="edge"><div>${a.label}</div><div class="rel">${e[2]||"→"}</div><div>${b.label}</div></div>`}).join("")||"No relationships";
+ applyDisplay();
+}
+const ray=new THREE.Raycaster(),mouse=new THREE.Vector2();
+renderer.domElement.addEventListener("pointermove",e=>{let r=renderer.domElement.getBoundingClientRect();mouse.x=(e.clientX-r.left)/r.width*2-1;mouse.y=-(e.clientY-r.top)/r.height*2+1;ray.setFromCamera(mouse,camera);let h=ray.intersectObjects(meshes.filter(m=>m.visible));let tip=document.getElementById("tip");if(h.length){let n=h[0].object.userData;tip.style.display="block";tip.style.left=(e.clientX-r.left+12)+"px";tip.style.top=(e.clientY-r.top+12)+"px";tip.innerHTML=`<b>${n.label}</b><br>${n.type} · ${(n.c*100).toFixed(1)}%`; }else tip.style.display="none"});
+renderer.domElement.addEventListener("click",()=>{ray.setFromCamera(mouse,camera);let h=ray.intersectObjects(meshes.filter(m=>m.visible));if(h.length)selectNode(h[0].object.userData)});
+
+function resize(){let r=document.getElementById("view").getBoundingClientRect();renderer.setSize(r.width,r.height);camera.aspect=r.width/r.height;camera.updateProjectionMatrix()}window.addEventListener("resize",resize);resize();
+function setView(p){camera.position.set(...p);controls.target.set(0,0,0);controls.update()}
+document.getElementById("sceneSelect").onchange=e=>{current=DATA[e.target.value];selected=null;makeGraph()};
+document.getElementById("search").oninput=applyDisplay;
+document.getElementById("showEdges").onchange=applyDisplay;document.getElementById("showLabels").onchange=applyDisplay;
+document.getElementById("showAxes").onchange=e=>{world.children.slice(0,4).forEach((x,i)=>{if(i<4)x.visible=e.target.checked})};
+document.getElementById("autoRotate").onchange=e=>controls.autoRotate=e.target.checked;
+document.getElementById("pointSize").oninput=e=>{pointScale=+e.target.value;applyDisplay()};
+document.getElementById("edgeOpacity").oninput=e=>{edgeAlpha=+e.target.value;applyDisplay()};
+document.getElementById("reset").onclick=()=>{setView([5,3.5,6.5]);document.getElementById("search").value="";selected=null;makeGraph()};
+document.getElementById("fit").onclick=()=>setView([5,3.5,6.5]);
+document.getElementById("topView").onclick=()=>setView([0,7,.01]);document.getElementById("frontView").onclick=()=>setView([0,0,8]);document.getElementById("sideView").onclick=()=>setView([8,0,0]);document.getElementById("originView").onclick=()=>setView([3,2,4]);
+document.querySelectorAll(".tab").forEach(t=>t.onclick=()=>{document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));t.classList.add("active");document.getElementById("projectionTitle").textContent=t.dataset.proj;document.getElementById("projLabel").textContent=t.dataset.proj+" → 3D"});
+document.getElementById("loadDemo").onclick=()=>{document.getElementById("sceneSelect").value="street";current=DATA.street;makeGraph()};
+makeGraph();
+(function animate(){requestAnimationFrame(animate);controls.update();renderer.render(scene,camera)})();
+</script>
+</body>
+</html>
