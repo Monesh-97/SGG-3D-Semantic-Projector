@@ -574,23 +574,6 @@ Interactive Visualization of Scene Graph Embeddings
 Using PCA, t-SNE, and UMAP.
 ```
 
----
-
-# Author
-
-Monesh S.
-
-Research Areas:
-
-- Scene Graph Generation
-- Computer Vision
-- Transformer-based Vision Models
-- Visual Relationship Detection
-- Graph Representation Learning
-- Semantic Embeddings
-- AI-based Visual Understanding
-
----
 
 # Project Tagline
 
